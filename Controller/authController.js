@@ -74,10 +74,11 @@ exports.logout = (req, res) => {
 exports.refresh = (req, res) => {
     const { refreshToken } = req.cookies;
 
-    const { id, login } = decoder(req.body.accessToken)
+
 
     if (!refreshToken) {
         try {
+            const { id, login } = decoder(req.body.accessToken)
             if (jwt.verify(req.body.accessToken, config.jwtAccess)) {
                 const newAccessToken = jwt.sign({ id, login }, config.jwtAccess, { expiresIn: config.accessLifeTime });
                 response.status({
@@ -93,6 +94,7 @@ exports.refresh = (req, res) => {
         }
         return
     } else {
+        const { login } = decoder(refreshToken)
         res.clearCookie('refreshToken');
 
         let dateNow = new Date();
