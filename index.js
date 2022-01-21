@@ -14,16 +14,28 @@ app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 app.use(cookieParser())
 
-
 require('./middleware/passport')(passport)
 
 
 const useSocket = require("socket.io");
 
+
+app.get('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, './index.html'), function (err) {
+        if (err) {
+            res.status(500).send(err)
+        }
+    })
+})
+
 let users = []
 
 const start = async () => {
     try {
+
+        app.get('./*', (req, res, next) => {
+            res.sendFile(path.join(__dirname, '/index.html'));
+        })
         routes(app);
         const server = app.listen(port, () => {
             console.log('Server has been started on port ' + port)
