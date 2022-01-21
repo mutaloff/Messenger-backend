@@ -8,7 +8,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const routes = require('./settings/routes');
 
-app.use(cors({ credentials: true, origin: ['http://localhost:5005', 'http://127.0.0.1:5500'] }));
+app.use(cors({ credentials: true, origin: ['http://localhost:5005', 'http://127.0.0.1:5500', 'http://k-media.ugatu.su'] }));
 app.use(passport.initialize())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
