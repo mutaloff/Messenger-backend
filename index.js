@@ -19,15 +19,6 @@ require('./middleware/passport')(passport)
 
 const useSocket = require("socket.io");
 
-
-app.get('/*', function (req, res) {
-    res.sendFile(path.join(__dirname, './index.html'), function (err) {
-        if (err) {
-            res.status(500).send(err)
-        }
-    })
-})
-
 let users = []
 
 const start = async () => {
