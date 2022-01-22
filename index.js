@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const path = require('path')
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -7,15 +8,26 @@ const passport = require('passport');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const routes = require('./settings/routes');
+const history = require('connect-history-api-fallback');
 
 app.use(cors({ credentials: true, origin: ['http://localhost:5005', 'http://127.0.0.1:5500', 'http://k-media.ugatu.su'] }));
 app.use(passport.initialize())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 app.use(cookieParser())
+app.use(history());
 
 require('./middleware/passport')(passport)
 
+app.use(express.static(path.join(__dirname, '/')));
+
+app.get('*', function (req, res) {
+    res.sendFile(path.join(__dirname, '/index.html'), function (err) {
+        if (err) {
+            res.status(500).send(err)
+        }
+    })
+})
 
 const useSocket = require("socket.io");
 
@@ -23,10 +35,6 @@ let users = []
 
 const start = async () => {
     try {
-
-        app.get('./*', (req, res, next) => {
-            res.sendFile(path.join(__dirname, '/index.html'));
-        })
         routes(app);
         const server = app.listen(port, () => {
             console.log('Server has been started on port ' + port)
@@ -58,7 +66,7 @@ const start = async () => {
 }
 
 const addUser = (login, socketId) => {
-    if (login && !users.some(user => user.socketId === socketId)) {
+    if (login) {
         users.push({ login, socketId })
         console.log(users)
     }
