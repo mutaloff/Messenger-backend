@@ -8,26 +8,14 @@ const passport = require('passport');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const routes = require('./settings/routes');
-const history = require('connect-history-api-fallback');
 
 app.use(cors({ credentials: true, origin: ['http://localhost:5005', 'http://127.0.0.1:5500', 'http://k-media.ugatu.su'] }));
 app.use(passport.initialize())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 app.use(cookieParser())
-app.use(history());
 
 require('./middleware/passport')(passport)
-
-app.use(express.static(path.join(__dirname, '/')));
-
-app.get('*', function (req, res) {
-    res.sendFile(path.join(__dirname, '/index.html'), function (err) {
-        if (err) {
-            res.status(500).send(err)
-        }
-    })
-})
 
 const useSocket = require("socket.io");
 

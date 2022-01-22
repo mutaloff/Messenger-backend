@@ -3,5 +3,5 @@
 const response = require('./../response');
 
 exports.index = (req, res) => {
-    res.json('Hi!');
+    res.json('Server is working!!');
 }
