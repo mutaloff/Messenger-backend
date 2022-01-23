@@ -74,8 +74,6 @@ exports.logout = (req, res) => {
 exports.refresh = (req, res) => {
     const { refreshToken } = req.cookies;
 
-
-
     if (!refreshToken) {
         try {
             const { id, login } = decoder(req.body.accessToken)

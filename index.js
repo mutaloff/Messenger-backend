@@ -1,6 +1,5 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const path = require('path')
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,6 +15,7 @@ app.use(bodyParser.json())
 app.use(cookieParser())
 
 require('./middleware/passport')(passport)
+
 
 const useSocket = require("socket.io");
 
@@ -34,9 +34,9 @@ const start = async () => {
                 io.emit('enter', addUser(login, socket.id));
             });
             socket.on('sendMessage', ({ sender_login, receiver_login, text, firstname }) => {
-                const user = findUser(receiver_login);
+                const userAccs = findUser(sender_login, receiver_login, socket.id);
                 if (users.some(user => user.login === receiver_login)) {
-                    io.to(user.socketId).emit('getMessage', { sender_login, text, firstname })
+                    userAccs.forEach(user => io.to(user.socketId).emit('getMessage', { sender_login, text, firstname }))
                 }
             })
             socket.on('getOnline', () => {
@@ -54,7 +54,7 @@ const start = async () => {
 }
 
 const addUser = (login, socketId) => {
-    if (login) {
+    if (login && !users.some(user => user.socketId === socketId)) {
         users.push({ login, socketId })
         console.log(users)
     }
@@ -66,9 +66,10 @@ const removeUser = (socketId) => {
     }
 }
 
-const findUser = (login) => {
-    if (login) {
-        return users.find(user => user.login === login)
+const findUser = (sender_login, receiver_login, id) => {
+    console.log(id)
+    if (receiver_login) {
+        return users.filter(user => (user.login === sender_login || user.login === receiver_login) && user.socketId != id)
     }
 }
 
