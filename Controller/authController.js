@@ -77,6 +77,7 @@ exports.refresh = (req, res) => {
     if (!refreshToken) {
         try {
             const { id, login } = decoder(req.body.accessToken)
+            console.log(req.body.accessToken)
             if (jwt.verify(req.body.accessToken, config.jwtAccess)) {
                 const newAccessToken = jwt.sign({ id, login }, config.jwtAccess, { expiresIn: config.accessLifeTime });
                 response.status({
@@ -88,23 +89,26 @@ exports.refresh = (req, res) => {
 
             }
         } catch (err) {
-            throw new Error(err)
+            throw new Error('Что то не так с access токеном')
         }
         return
+
     } else {
         const { login } = decoder(refreshToken)
         res.clearCookie('refreshToken');
-
+        console.log('refresh')
         let dateNow = new Date();
         let isRefreshTokenValid = false;
+
         if (decoder(refreshToken).exp > dateNow.getTime() / 1000) {
             isRefreshTokenValid = jwt.verify(refreshToken, config.jwtRefresh)
+        } else {
+            throw new Error('Время токена истекло')
         }
 
         const sql = "SELECT `refresh_token` from `Auth` Where refresh_token=" + `'${refreshToken}'`;
 
         try {
-
             db.query(sql, (err, result) => {
                 if (err) {
                     throw new Error('Токен не найден')
@@ -118,7 +122,7 @@ exports.refresh = (req, res) => {
                                 const newRefreshToken = jwt.sign({ id, login }, config.jwtRefresh, { expiresIn: config.refreshLifeTime });
                                 const newAccessToken = jwt.sign({ id, login }, config.jwtAccess, { expiresIn: config.accessLifeTime });
                                 db.query("UPDATE `Auth` SET refresh_token='" + newRefreshToken + "' Where refresh_token=" + `'${refreshToken}'`)
-                                res.cookie('refreshToken', newRefreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true })
+                                res.cookie('refreshToken', newRefreshToken, { maxAge: 60 * 1000, httpOnly: true })
                                 response.status({
                                     accessToken: newAccessToken,
                                     refreshToken: newRefreshToken,
@@ -129,15 +133,7 @@ exports.refresh = (req, res) => {
                         })
                     } else {
                         try {
-                            const sql = 'DELETE FROM `Auth` WHERE refresh_token = ' + `'${refreshToken}'`
-                            res.clearCookie('refreshToken')
-                            db.query(sql, (error, results) => {
-                                if (error) {
-                                    console.log(error)
-                                } else {
-                                    response.status(200, res)
-                                }
-                            })
+                            deleteToken(res, refreshToken)
                         } catch {
                             throw new Error('Токен невалидный')
                         }
@@ -148,4 +144,16 @@ exports.refresh = (req, res) => {
             console.log(err)
         }
     }
+}
+
+function deleteToken(res, token) {
+    const sql = 'DELETE FROM `Auth` WHERE refresh_token = ' + `'${token}'`
+    res.clearCookie('refreshToken')
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(200, res)
+        }
+    })
 }
