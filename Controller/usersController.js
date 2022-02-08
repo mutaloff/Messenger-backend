@@ -16,8 +16,8 @@ exports.users = (req, res) => {
 
 exports.userContacts = (req, res) => {
     const sql = "select DISTINCT login, firstname, lastname, sequence, last_message, importance, status, is_private from Users JOIN" +
-        " `contacts` where (login, sequence, importance) in (SELECT owner_login, sequence, '' FROM `Contacts` where contact_login='" +
-        req.body.login + "' union (SELECT contact_login,  sequence, importance FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC, importance"
+        " `contacts` where (login, sequence) in (SELECT owner_login, sequence FROM `Contacts` where contact_login='" +
+        req.body.login + "' union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
     db.query(sql, (error, rows) => {
         if (error) {
             console.log(error);
