@@ -6,7 +6,6 @@ const db = require('../settings/db');
 const bcrypt = require('bcrypt');
 
 exports.checkLogin = (req, res) => {
-
     db.query("SELECT `login` from `Users` Where login=" + `'${req.params.login}'`, (error, rows, fields) => {
         if (error) {
             console.log(error);
@@ -20,8 +19,11 @@ exports.login = (req, res) => {
     const sql = "SELECT `id`, `login`, `password` from `Users` Where login=" + `
         '${req.body.login}'`
 
+    const userAgent = req.headers['user-agent']
+
     db.query(sql, (error, rows, fields) => {
         let isPasswordValid;
+
         const id = rows[0]?.id, login = rows[0]?.login, password = rows[0]?.password, firstname = rows[0]?.firstname
 
         if (password) isPasswordValid = bcrypt.compareSync(req.body.password, password)
@@ -32,15 +34,16 @@ exports.login = (req, res) => {
 
             if (req.body.isRemember) {
                 refreshToken = jwt.sign({ id, login }, config.jwtRefresh, { expiresIn: config.accessLifeTime });
-                const sql = 'INSERT INTO `Auth` (`user_login`, `refresh_token`) VALUES (' + `
+                const sql = 'INSERT INTO `Auth` (`user_login`, `refresh_token`, `user_agent`) VALUES (' + `
                     '${login}', 
-                    '${refreshToken}')`
+                    '${refreshToken}',
+                    '${userAgent}')`
                 db.query(sql, (error, results) => {
                     if (error) {
                         console.log(error)
                     }
                 })
-                res.cookie('refreshToken', refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true })
+                res.cookie('refreshToken', refreshToken, { maxAge: 2_592_000_000, httpOnly: true })
             }
             if (error) {
                 console.log(error);
@@ -60,25 +63,22 @@ exports.login = (req, res) => {
 
 exports.logout = (req, res) => {
     const { refreshToken } = req.cookies;
-    const sql = 'DELETE FROM `Auth` WHERE refresh_token = ' + `'${refreshToken}'`
-    res.clearCookie('refreshToken')
-    db.query(sql, (error, results) => {
-        if (error) {
-            console.log(error)
-        } else {
-            response.status(200, res)
-        }
-    })
+    const userAgent = req.headers['user-agent'];
+
+    deleteAuth(res, refreshToken, userAgent)
 }
 
 exports.refresh = (req, res) => {
+
     const { refreshToken } = req.cookies;
+    const userAgent = req.headers['user-agent']
 
     if (!refreshToken) {
-        try {
-            const { id, login } = decoder(req.body.accessToken)
-            console.log(req.body.accessToken)
-            if (jwt.verify(req.body.accessToken, config.jwtAccess)) {
+        jwt.verify(req.body.accessToken, config.jwtAccess, function (err, vt) {
+            if (err) {
+                deleteAuth(res, refreshToken, userAgent)
+            } else {
+                const { id, login } = decoder(req.body.accessToken)
                 const newAccessToken = jwt.sign({ id, login }, config.jwtAccess, { expiresIn: config.accessLifeTime });
                 response.status({
                     accessToken: newAccessToken,
@@ -86,29 +86,23 @@ exports.refresh = (req, res) => {
                     login: login,
                     connection: true
                 }, res)
-
             }
-        } catch (err) {
-            throw new Error('Что то не так с access токеном')
-        }
-        return
-
+        })
     } else {
         const { login } = decoder(refreshToken)
-        res.clearCookie('refreshToken');
-        console.log('refresh')
+
         let dateNow = new Date();
         let isRefreshTokenValid = false;
-
         if (decoder(refreshToken).exp > dateNow.getTime() / 1000) {
-            isRefreshTokenValid = jwt.verify(refreshToken, config.jwtRefresh)
+            isRefreshTokenValid = jwt.verify(refreshToken, config.jwtRefresh);
         } else {
-            throw new Error('Время токена истекло')
+            deleteAuth(res, refreshToken, userAgent);
         }
 
-        const sql = "SELECT `refresh_token` from `Auth` Where refresh_token=" + `'${refreshToken}'`;
-
         try {
+            res.clearCookie('refreshToken');
+            const sql = "SELECT `refresh_token` from `Auth` Where refresh_token=" + `'${refreshToken}'`;
+
             db.query(sql, (err, result) => {
                 if (err) {
                     throw new Error('Токен не найден')
@@ -121,8 +115,11 @@ exports.refresh = (req, res) => {
                             } else {
                                 const newRefreshToken = jwt.sign({ id, login }, config.jwtRefresh, { expiresIn: config.refreshLifeTime });
                                 const newAccessToken = jwt.sign({ id, login }, config.jwtAccess, { expiresIn: config.accessLifeTime });
+
                                 db.query("UPDATE `Auth` SET refresh_token='" + newRefreshToken + "' Where refresh_token=" + `'${refreshToken}'`)
-                                res.cookie('refreshToken', newRefreshToken, { maxAge: 60 * 1000, httpOnly: true })
+
+                                res.cookie('refreshToken', newRefreshToken, { maxAge: 2_592_000_000, httpOnly: true })
+
                                 response.status({
                                     accessToken: newAccessToken,
                                     refreshToken: newRefreshToken,
@@ -133,9 +130,9 @@ exports.refresh = (req, res) => {
                         })
                     } else {
                         try {
-                            deleteToken(res, refreshToken)
+                            deleteAuth(res, refreshToken, userAgent)
                         } catch {
-                            throw new Error('Токен невалидный')
+                            new Error('Токен не подходит')
                         }
                     }
                 }
@@ -146,12 +143,12 @@ exports.refresh = (req, res) => {
     }
 }
 
-function deleteToken(res, token) {
-    const sql = 'DELETE FROM `Auth` WHERE refresh_token = ' + `'${token}'`
-    res.clearCookie('refreshToken')
+function deleteAuth(res, token, user_agent) {
+    const sql = 'DELETE FROM `Auth` WHERE refresh_token = ' + `'${token}'` + ' or user_agent=' + `'${user_agent}'`
+    token && res.clearCookie(token)
     db.query(sql, (error, results) => {
         if (error) {
-            console.log(error)
+            throw new Error(err)
         } else {
             response.status(200, res)
         }

@@ -15,11 +15,9 @@ exports.users = (req, res) => {
 }
 
 exports.userContacts = (req, res) => {
-    const sql = "SELECT DISTINCT M.id, U.id, `login`, `firstname`, `lastname` from `Users` AS U JOIN `Messages` AS M " +
-        "where (M.id, U.login) in (select max(id), sender_login from (SELECT MAX(id) as id, `sender_login` from `Messages` where (`receiver_login`='" +
-        req.body.login + "' or `sender_login`='" + req.body.login + "') GROUP BY `sender_login`, `receiver_login` union SELECT MAX(id), `receiver_login` from `Messages`" +
-        "where (`receiver_login`='" + req.body.login + "' or `sender_login`='" + req.body.login + "') GROUP BY `sender_login`, `receiver_login`) as T " +
-        "where (`sender_login` !='" + req.body.login + "') GROUP BY `sender_login`) ORDER BY M.id DESC"
+    const sql = "select DISTINCT login, firstname, lastname, sequence, last_message, importance, status, is_private from Users JOIN" +
+        " `contacts` where (login, sequence, importance) in (SELECT owner_login, sequence, '' FROM `Contacts` where contact_login='" +
+        req.body.login + "' union (SELECT contact_login,  sequence, importance FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC, importance"
     db.query(sql, (error, rows) => {
         if (error) {
             console.log(error);
@@ -28,6 +26,7 @@ exports.userContacts = (req, res) => {
         }
     })
 }
+
 
 exports.search = (req, res) => {
     db.query("SELECT `id`, `login`, `firstname`, `lastname` from `Users` Where login LIKE" + `'${req.params.login}%'`, (error, rows) => {
@@ -58,4 +57,55 @@ exports.add = (req, res) => {
     }
 }
 
+exports.checkSubscription = (req, res) => {
+    const sql = "SELECT owner_login from Contacts where (owner_login='" +
+        req.body.ownerLogin + "' and contact_login='" + req.body.contactLogin + "') or (owner_login='" +
+        req.body.contactLogin + "' and contact_login='" + req.body.ownerLogin + "')";
+    db.query(sql, (error, result) => {
+        if (error) {
+            console.log(error)
+        } else {
+            try {
+                let subscribtion
+                let count = result.length
 
+                if (!count && req.body.contactLogin !== req.body.ownerLogin) {
+                    subscribtion = false;
+                } else if (count === 1) {
+                    subscribtion = result[0].owner_login
+                } else {
+                    subscribtion = true
+                }
+                response.status({ subscribtion }, res)
+            } catch {
+                throw new Error('Проблемы с подписками')
+            }
+        }
+    })
+}
+
+exports.subscribe = (req, res) => {
+    console.log(Date.now())
+    const sql = "INSERT INTO `Contacts` (`owner_login`, `contact_login`, `sequence`) VALUES ('" +
+        req.body.ownerLogin + "', '" + req.body.contactLogin + "', " + 0 + ")"
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
+
+exports.unsubscribe = (req, res) => {
+    const sql = "DELETE FROM `Contacts` where (owner_login='" +
+        req.body.ownerLogin + "' and contact_login='" + req.body.contactLogin + "') or (owner_login='" +
+        req.body.contactLogin + "' and contact_login='" + req.body.ownerLogin + "')"
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(false, res)
+        }
+    })
+}
