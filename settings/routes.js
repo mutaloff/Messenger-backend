@@ -15,6 +15,7 @@ module.exports = (app) => {
     app.route('/check-subscription').post(passport.authenticate('jwt', { session: false }), usersController.checkSubscription);
     app.route('/set-subscription').post(passport.authenticate('jwt', { session: false }), usersController.subscribe);
     app.route('/set-unsubscription').post(passport.authenticate('jwt', { session: false }), usersController.unsubscribe);
+    app.route('/set-leaving-time').post(passport.authenticate('jwt', { session: false }), usersController.setLeavingTime);
 
     app.route('/login').post(authController.login);
     app.route('/users/check/@:login').get(authController.checkLogin);

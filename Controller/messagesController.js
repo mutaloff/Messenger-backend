@@ -31,7 +31,8 @@ exports.getMessages = (req, res) => {
 
 
 exports.setMessage = (req, res) => {
-    const contact_sql = "Update `Contacts` set sequence=" + Date.now() + " where (owner_login ='" + req.body.receiverLogin +
+    const contact_sql = "Update `Contacts` set sequence=" + Date.now() + ", last_message='" + req.body.text +
+        "' where (owner_login ='" + req.body.receiverLogin +
         "' and contact_login='" + req.body.senderLogin + "') or (owner_login ='" + req.body.senderLogin +
         "' and contact_login='" + req.body.receiverLogin + "')"
     db.query(contact_sql, (error, rows) => {

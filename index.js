@@ -8,7 +8,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const routes = require('./settings/routes');
 
-app.use(cors({ credentials: true, origin: ['http://localhost:5000', 'http://127.0.0.1:5500', 'http://k-media.ugatu.su'] }));
+app.use(cors({ credentials: true, origin: ['http://localhost:5001', 'http://127.0.0.1:5500', 'http://k-media.ugatu.su'] }));
 app.use(passport.initialize())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -16,8 +16,9 @@ app.use(cookieParser())
 
 require('./middleware/passport')(passport)
 
-
+const setLeavingTime = require('./Controller/usersController').setLeavingTime
 const useSocket = require("socket.io");
+const { user } = require('./config');
 
 let users = []
 
@@ -35,7 +36,6 @@ const start = async () => {
             });
             socket.on('sendMessage', ({ sender_login, receiver_login, text, firstname }) => {
                 const userAccs = findUser(sender_login, receiver_login, socket.id);
-
                 if (users.some(user => user.login === receiver_login)) {
                     userAccs.forEach(user => io.to(user.socketId).emit('getMessage', { sender_login, text, firstname }))
                 }
@@ -44,6 +44,8 @@ const start = async () => {
                 io.emit('online', users)
             })
             socket.on('disconnect', () => {
+                setLeavingTime(getUserBySocketId(socket.id))
+                io.emit('exit', { user: getUserBySocketId(socket.id) })
                 removeUser(socket.id)
                 io.emit('online', users)
             })
@@ -59,6 +61,10 @@ const addUser = (login, socketId) => {
         users.push({ login, socketId })
         console.log(users)
     }
+}
+
+const getUserBySocketId = (id) => {
+    return users.filter(user => user.socketId === id)[0]?.login
 }
 
 const removeUser = (socketId) => {

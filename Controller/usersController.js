@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 
 
 exports.users = (req, res) => {
-    db.query("SELECT `id`, `login`, `firstname`, `lastname` from `Users` Where login=" + `'${req.params.login}'`, (error, rows) => {
+    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private` from `Users` Where login=" + `'${req.params.login}'`, (error, rows) => {
         if (error) {
             console.log(error);
         } else {
@@ -15,7 +15,7 @@ exports.users = (req, res) => {
 }
 
 exports.userContacts = (req, res) => {
-    const sql = "select DISTINCT login, firstname, lastname, sequence, last_message, status, is_private from Users JOIN" +
+    const sql = "select DISTINCT login, firstname, last_entrance, lastname, sequence, last_message, status, is_private from Users JOIN" +
         " `contacts` where (login, sequence) in (SELECT owner_login, sequence FROM `Contacts` where contact_login='" +
         req.body.login + "' union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
     db.query(sql, (error, rows) => {
@@ -29,7 +29,7 @@ exports.userContacts = (req, res) => {
 
 
 exports.search = (req, res) => {
-    db.query("SELECT `id`, `login`, `firstname`, `lastname` from `Users` Where login LIKE" + `'${req.params.login}%'`, (error, rows) => {
+    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `status` from `Users` Where login LIKE" + `'${req.params.login}%'`, (error, rows) => {
         if (error) {
             console.log(error);
         } else {
@@ -66,17 +66,17 @@ exports.checkSubscription = (req, res) => {
             console.log(error)
         } else {
             try {
-                let subscribtion
+                let subscription
                 let count = result.length
 
                 if (!count && req.body.contactLogin !== req.body.ownerLogin) {
-                    subscribtion = false;
+                    subscription = false;
                 } else if (count === 1) {
-                    subscribtion = result[0].owner_login
+                    subscription = result[0].owner_login
                 } else {
-                    subscribtion = true
+                    subscription = true
                 }
-                response.status({ subscribtion }, res)
+                response.status({ subscription }, res)
             } catch {
                 throw new Error('Проблемы с подписками')
             }
@@ -85,7 +85,6 @@ exports.checkSubscription = (req, res) => {
 }
 
 exports.subscribe = (req, res) => {
-    console.log(Date.now())
     const sql = "INSERT INTO `Contacts` (`owner_login`, `contact_login`, `sequence`) VALUES ('" +
         req.body.ownerLogin + "', '" + req.body.contactLogin + "', " + 0 + ")"
     db.query(sql, (error, results) => {
@@ -96,6 +95,7 @@ exports.subscribe = (req, res) => {
         }
     })
 }
+
 
 exports.unsubscribe = (req, res) => {
     const sql = "DELETE FROM `Contacts` where (owner_login='" +
@@ -109,3 +109,14 @@ exports.unsubscribe = (req, res) => {
         }
     })
 }
+
+
+exports.setLeavingTime = (login) => {
+    const sql = "Update `Users` set last_entrance=" + Date.now() + " where login='" + login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        }
+    })
+}
+
