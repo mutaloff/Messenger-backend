@@ -4,7 +4,7 @@ const db = require('../settings/db');
 exports.getMessages = (req, res) => {
     const limit = 50
     const result = {}
-    const msgsSql = "SELECT DISTINCT M.id, `login`, `firstname`, `lastname`, `sender_login`," +
+    const msgsSql = "SELECT DISTINCT M.id, `login`,`is_read`, `firstname`, `lastname`, `sender_login`," +
         " `receiver_login`, `text`, `date` from `Users` AS U JOIN `Messages` AS M ON (login = sender_login)" +
         "WHERE (sender_login=" + `'${req.body.senderLogin}' AND receiver_login='${req.body.receiverLogin}') OR
         (sender_login='${req.body.receiverLogin}' AND receiver_login='${req.body.senderLogin}') 

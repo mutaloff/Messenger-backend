@@ -8,7 +8,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const routes = require('./settings/routes');
 
-app.use(cors({ credentials: true, origin: ['http://localhost:5001', 'http://127.0.0.1:5500', 'http://k-media.ugatu.su'] }));
+app.use(cors({ credentials: true, origin: ['http://localhost:5000', 'http://127.0.0.1:5500', 'http://k-media.ugatu.su'] }));
 app.use(passport.initialize())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -18,7 +18,6 @@ require('./middleware/passport')(passport)
 
 const setLeavingTime = require('./Controller/usersController').setLeavingTime
 const useSocket = require("socket.io");
-const { user } = require('./config');
 
 let users = []
 
@@ -30,19 +29,34 @@ const start = async () => {
         })
 
         const io = useSocket(server)
+        let is_read = 0
         io.on('connection', function (socket) {
             socket.on('enter', (login) => {
                 io.emit('enter', addUser(login, socket.id));
             });
+
             socket.on('sendMessage', ({ sender_login, receiver_login, text, firstname }) => {
                 const userAccs = findUser(sender_login, receiver_login, socket.id);
                 if (users.some(user => user.login === receiver_login)) {
-                    userAccs.forEach(user => io.to(user.socketId).emit('getMessage', { sender_login, text, firstname }))
+                    userAccs.forEach(user => {
+                        io.to(user.socketId).emit('getMessage', { sender_login, text, firstname, is_read })
+                    })
                 }
             })
+            socket.on('readMessage', (loginTo, loginFrom) => {
+                const userAccs = findUser(loginTo, loginFrom, socket.id);
+                if (users.some(user => user.login === loginFrom)) {
+                    userAccs.forEach(user => {
+                        console.log(user.socketId)
+                        io.to(user.socketId).emit('read')
+                    })
+                }
+            })
+
             socket.on('getOnline', () => {
                 io.emit('online', users)
             })
+
             socket.on('disconnect', () => {
                 setLeavingTime(getUserBySocketId(socket.id))
                 io.emit('exit', { user: getUserBySocketId(socket.id) })
