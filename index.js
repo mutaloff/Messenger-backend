@@ -47,7 +47,6 @@ const start = async () => {
                 const userAccs = findUser(loginTo, loginFrom, socket.id);
                 if (users.some(user => user.login === loginFrom)) {
                     userAccs.forEach(user => {
-                        console.log(user.socketId)
                         io.to(user.socketId).emit('read')
                     })
                 }
