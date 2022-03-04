@@ -98,14 +98,23 @@ exports.subscribe = (req, res) => {
 
 
 exports.unsubscribe = (req, res) => {
-    const sql = "DELETE FROM `Contacts` where (owner_login='" +
+    const constactSql = "DELETE FROM `Contacts` where (owner_login='" +
         req.body.ownerLogin + "' and contact_login='" + req.body.contactLogin + "') or (owner_login='" +
         req.body.contactLogin + "' and contact_login='" + req.body.ownerLogin + "')"
-    db.query(sql, (error, results) => {
+    const messageSql = "DELETE FROM `Messages` where (sender_login='" +
+        req.body.ownerLogin + "' and receiver_login='" + req.body.contactLogin + "') or (sender_login='" +
+        req.body.contactLogin + "' and receiver_login='" + req.body.ownerLogin + "')"
+    db.query(messageSql, (error, results) => {
         if (error) {
             console.log(error)
         } else {
-            response.status(false, res)
+            db.query(constactSql, (error, results) => {
+                if (error) {
+                    console.log(error)
+                } else {
+                    response.status(false, res)
+                }
+            })
         }
     })
 }
@@ -119,4 +128,32 @@ exports.setLeavingTime = (login) => {
         }
     })
 }
+
+exports.setPrivate = (req, res) => {
+    const sql = "Update `Users` set is_private=" + req.body.isPrivate + " where login='" + req.body.login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
+
+exports.getPrivate = (req, res) => {
+    const sql = "select `is_private` from `Users` where login='" + req.body.login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            if (results[0].is_private == 0) {
+                response.status(false, res)
+            } else {
+                response.status(true, res)
+            }
+        }
+    })
+}
+
+
 
