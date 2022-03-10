@@ -1,7 +1,7 @@
 const response = require('../response');
 const db = require('../settings/db');
 const bcrypt = require('bcrypt');
-
+const crypto = require('../crypto')
 
 
 exports.users = (req, res) => {
@@ -15,14 +15,33 @@ exports.users = (req, res) => {
 }
 
 exports.userContacts = (req, res) => {
-    const sql = "select DISTINCT login, firstname, last_entrance, lastname, sequence, last_message, status, is_private from Users JOIN" +
+
+    const constactsSQL = "select DISTINCT login, firstname, last_entrance, lastname, sequence, last_message, status, is_private from Users JOIN" +
         " `contacts` where (login, sequence) in (SELECT owner_login, sequence FROM `Contacts` where contact_login='" +
-        req.body.login + "' union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
-    db.query(sql, (error, rows) => {
+        req.body.login + "'union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
+    db.query(constactsSQL, (error, contacts) => {
+        const contacts_login = db.escape(contacts.map(contact => contact.login))
+        const unreadSQL = "SELECT login,  count(sender_login) as count FROM Users LEFT JOIN Messages ON " +
+            "login=sender_login and Messages.is_read=0 and Messages.receiver_login='" + req.body.login +
+            "' where (login in (" + contacts_login + ")) GROUP By login " + "ORDER BY FIELD(login, " + contacts_login + ")"
         if (error) {
             console.log(error);
         } else {
-            response.status(rows, res)
+            db.query(unreadSQL, (error, reads) => {
+                for (let i = 0; i < contacts.length; i++) {
+                    if (contacts[i].last_message) {
+                        contacts[i].last_message = crypto.decrypt(contacts[i].last_message)
+                    }
+                    if (contacts.length === reads.length) {
+                        contacts[i].messages_count = reads[i].count
+                    }
+                }
+                if (error && contacts.length) {
+                    console.log(error);
+                } else {
+                    response.status(contacts, res)
+                }
+            })
         }
     })
 }
