@@ -37,7 +37,6 @@ exports.setMessage = (req, res) => {
         "' where (owner_login in (" + db.escape(req.body.receiverLogin) +
         ") and contact_login='" + req.body.senderLogin + "') or (owner_login ='" + req.body.senderLogin +
         "' and contact_login in (" + db.escape(req.body.receiverLogin) + "))"
-    console.log(contact_sql)
     db.query(contact_sql, (error, rows) => {
         if (error) {
             console.log(error);
@@ -83,4 +82,11 @@ exports.setRead = (req, res) => {
 
 exports.addFolder = (req, res) => {
     const sql = "INSERT INTO  `Folders` (`login`, `folder`) VALUES (" + `'${req.body.login}', '${req.body.folder}')`
+    db.query(sql, (error, rows) => {
+        if (error) {
+            console.log(error);
+        } else {
+            response.status(true, res)
+        }
+    })
 }
