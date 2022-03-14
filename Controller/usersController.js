@@ -1,8 +1,7 @@
 const response = require('../response');
 const db = require('../settings/db');
 const bcrypt = require('bcrypt');
-const crypto = require('../crypto')
-
+const crypto = require('../crypto');
 
 exports.users = (req, res) => {
     db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private` from `Users` Where login=" + `'${req.params.login}'`, (error, rows) => {
@@ -21,9 +20,11 @@ exports.userContacts = (req, res) => {
         req.body.login + "'union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
     db.query(constactsSQL, (error, contacts) => {
         const contacts_login = db.escape(contacts.map(contact => contact.login))
-        const unreadSQL = "SELECT login,  count(sender_login) as count FROM Users LEFT JOIN Messages ON " +
-            "login=sender_login and Messages.is_read=0 and Messages.receiver_login='" + req.body.login +
-            "' where (login in (" + contacts_login + ")) GROUP By login " + "ORDER BY FIELD(login, " + contacts_login + ")"
+        const unreadSQL = "SELECT login,  count(sender_login) as count, importance, contact_group, labels " +
+            "FROM Users LEFT JOIN Messages ON login=sender_login and Messages.is_read=0 and Messages.receiver_login='" +
+            req.body.login + "' LEFT JOIN Contacts On contact_login=login and owner_login='" + req.body.login +
+            "' where (login in (" + contacts_login + ")) GROUP By login, importance, labels, owner_login, contact_group ORDER BY FIELD(login, " +
+            contacts_login + ")"
         if (error) {
             console.log(error);
         } else {
@@ -34,6 +35,9 @@ exports.userContacts = (req, res) => {
                     }
                     if (contacts.length === reads.length) {
                         contacts[i].messages_count = reads[i].count
+                        contacts[i].importance = reads[i].importance
+                        contacts[i].contact_group = reads[i].contact_group ? crypto.decrypt(reads[i].contact_group) : null
+                        contacts[i].labels = reads[i].labels
                     }
                 }
                 if (error && contacts.length) {
@@ -48,13 +52,14 @@ exports.userContacts = (req, res) => {
 
 
 exports.search = (req, res) => {
-    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `status` from `Users` Where login LIKE" + `'${req.params.login}%'`, (error, rows) => {
-        if (error) {
-            console.log(error);
-        } else {
-            response.status(rows, res)
-        }
-    })
+    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `status` from `Users` Where login LIKE" +
+        `'${req.params.login}%'`, (error, rows) => {
+            if (error) {
+                console.log(error);
+            } else {
+                response.status(rows, res)
+            }
+        })
 }
 
 exports.add = (req, res) => {
@@ -172,6 +177,20 @@ exports.getPrivate = (req, res) => {
             }
         }
     })
+}
+
+exports.createFolder = (req, res) => {
+    const folderName = !req.body.folder[0].folderName ? null : `'${crypto.encrypt(req.body.folder[0].folderName)}'`
+    const sql = "Update `Contacts` set contact_group=" + folderName + " where owner_login='" +
+        req.body.login + "' and contact_login in (" + db.escape(req.body.folder[1].contacts) + ")";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+
 }
 
 

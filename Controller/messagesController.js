@@ -34,18 +34,18 @@ exports.getMessages = (req, res) => {
 
 exports.setMessage = (req, res) => {
     const contact_sql = "Update `Contacts` set sequence=" + Date.now() + ", last_message='" + crypto.encrypt(req.body.text) +
-        "' where (owner_login ='" + req.body.receiverLogin +
-        "' and contact_login='" + req.body.senderLogin + "') or (owner_login ='" + req.body.senderLogin +
-        "' and contact_login='" + req.body.receiverLogin + "')"
+        "' where (owner_login in (" + db.escape(req.body.receiverLogin) +
+        ") and contact_login='" + req.body.senderLogin + "') or (owner_login ='" + req.body.senderLogin +
+        "' and contact_login in (" + db.escape(req.body.receiverLogin) + "))"
+    console.log(contact_sql)
     db.query(contact_sql, (error, rows) => {
         if (error) {
             console.log(error);
         } else {
-            const sql = "INSERT INTO  `Messages` (`sender_login`, `receiver_login`, `text`, `is_read`, `date`) VALUES (" + `
-                '${req.body.senderLogin}', 
-                '${req.body.receiverLogin}',
-                '${crypto.encrypt(req.body.text)}', '0', NOW())`
-            db.query(sql, (error, results) => {
+            let sql = "INSERT INTO  `Messages` (`sender_login`, `receiver_login`, `text`, `is_read`, `date`) VALUES "
+            req.body.receiverLogin.map(receiverLogin =>
+                sql = `${sql}('${req.body.senderLogin}', '${receiverLogin}','${crypto.encrypt(req.body.text)}', '0', NOW()),`)
+            db.query(sql.slice(0, -1), (error, results) => {
                 if (error) {
                     console.log(error);
                 } else {
@@ -78,4 +78,9 @@ exports.setRead = (req, res) => {
             response.status(rows, res)
         }
     })
+}
+
+
+exports.addFolder = (req, res) => {
+    const sql = "INSERT INTO  `Folders` (`login`, `folder`) VALUES (" + `'${req.body.login}', '${req.body.folder}')`
 }
