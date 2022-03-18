@@ -79,14 +79,14 @@ exports.setRead = (req, res) => {
     })
 }
 
-
-exports.addFolder = (req, res) => {
-    const sql = "INSERT INTO  `Folders` (`login`, `folder`) VALUES (" + `'${req.body.login}', '${req.body.folder}')`
+exports.setImportance = (req, res) => {
+    const sql = "Update `Contacts` set importance='" + req.body.importance + "' where (owner_login ='" + req.body.ownerLogin +
+        "' and contact_login='" + req.body.contactLogin + "')"
     db.query(sql, (error, rows) => {
         if (error) {
             console.log(error);
         } else {
-            response.status(true, res)
+            response.status(rows, res)
         }
     })
 }

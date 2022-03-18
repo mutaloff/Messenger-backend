@@ -29,4 +29,5 @@ module.exports = (app) => {
     app.route('/get-messages').post(passport.authenticate('jwt', { session: false }), messagesController.getMessages);
     app.route('/get-unread').post(passport.authenticate('jwt', { session: false }), messagesController.getUnread);
     app.route('/set-read').post(passport.authenticate('jwt', { session: false }), messagesController.setRead);
+    app.route('/set-importance').post(passport.authenticate('jwt', { session: false }), messagesController.setImportance);
 }

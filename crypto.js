@@ -3,23 +3,20 @@ const config = require('./config')
 
 const key = config.messagesKey;
 const algorithm = config.algorithm;
+const iv = crypto.randomBytes(16);
 
-exports.encrypt = (string) => {
-    const iv = crypto.randomBytes(8).toString('hex')
-    const cipher = crypto.createCipheriv(algorithm, key, iv)
-
-    let encrypted = cipher.update(string, 'utf-8', 'hex')
-
-    encrypted += cipher.final('hex')
-
-    return `${encrypted}:${iv}`
+exports.encrypt = (text) => {
+    let cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv);
+    let encrypted = cipher.update(text);
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    return `${encrypted.toString('hex')}:${iv.toString('hex')}`
 }
 
-exports.decrypt = (string) => {
-    const [encryptedString, iv] = string.split(':')
-    const decipher = crypto.createDecipheriv(algorithm, key, iv)
-    decipher.setAutoPadding(false);
-    let decrypted = decipher.update(encryptedString, 'hex', 'utf-8')
-    decrypted += decipher.final('utf-8')
-    return decrypted
+exports.decrypt = (text) => {
+    let iv = Buffer.from(text.split(':')[1], 'hex');
+    let encryptedText = Buffer.from(text.split(':')[0], 'hex');
+    let decipher = crypto.createDecipheriv(algorithm, Buffer.from(key), iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
 }

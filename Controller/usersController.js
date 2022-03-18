@@ -15,12 +15,12 @@ exports.users = (req, res) => {
 
 exports.userContacts = (req, res) => {
 
-    const constactsSQL = "select DISTINCT login, firstname, last_entrance, lastname, sequence, last_message, status, is_private from Users JOIN" +
+    const constactsSQL = "select DISTINCT login, firstname, last_entrance, lastname, sequence, status, is_private from Users JOIN" +
         " `contacts` where (login, sequence) in (SELECT owner_login, sequence FROM `Contacts` where contact_login='" +
         req.body.login + "'union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
     db.query(constactsSQL, (error, contacts) => {
         const contacts_login = db.escape(contacts.map(contact => contact.login))
-        const unreadSQL = "SELECT login,  count(sender_login) as count, importance, contact_group, labels " +
+        const unreadSQL = "SELECT login,  count(sender_login) as count, importance, contact_group, labels, last_message " +
             "FROM Users LEFT JOIN Messages ON login=sender_login and Messages.is_read=0 and Messages.receiver_login='" +
             req.body.login + "' LEFT JOIN Contacts On contact_login=login and owner_login='" + req.body.login +
             "' where (login in (" + contacts_login + ")) GROUP By login, importance, labels, owner_login, contact_group ORDER BY FIELD(login, " +
@@ -38,12 +38,26 @@ exports.userContacts = (req, res) => {
                         contacts[i].importance = reads[i].importance
                         contacts[i].contact_group = reads[i].contact_group ? crypto.decrypt(reads[i].contact_group) : null
                         contacts[i].labels = reads[i].labels
+                        contacts[i].last_message = reads[i].last_message ? crypto.decrypt(reads[i].last_message) : null
                     }
                 }
+                let unreadContacts = []
+                let readContacts = []
+                let ignoreContacts = []
+                for (let contact of contacts) {
+                    if (contact.importance == 0) {
+                        ignoreContacts.push(contact)
+                    } else if (contact.messages_count == 0 || contact.importance == 1) {
+                        readContacts.push(contact)
+                    } else {
+                        unreadContacts.push(contact)
+                    }
+                }
+
                 if (error && contacts.length) {
                     console.log(error);
                 } else {
-                    response.status(contacts, res)
+                    response.status([...unreadContacts.sort((a, b) => b.importance - a.importance), ...readContacts, ...ignoreContacts], res)
                 }
             })
         }
@@ -109,9 +123,12 @@ exports.checkSubscription = (req, res) => {
 }
 
 exports.subscribe = (req, res) => {
-    const sql = "INSERT INTO `Contacts` (`owner_login`, `contact_login`, `sequence`) VALUES ('" +
-        req.body.ownerLogin + "', '" + req.body.contactLogin + "', " + 0 + ")"
-    db.query(sql, (error, results) => {
+    const insertSQL = "INSERT INTO `Contacts` (`owner_login`, `contact_login`, `sequence`) VALUES ('" +
+        req.body.ownerLogin + "', '" + req.body.contactLogin + "', " + 0 + ")" +
+        " ON DUPLICATE KEY UPDATE owner_login = '" + req.body.ownerLogin + "', contact_login = '" + req.body.contactLogin + "'"
+    const updateSQL = "UPDATE `Contacts` set sequence=" + 0 + " where owner_login = '" + req.body.contactLogin +
+        "' and contact_login = '" + req.body.ownerLogin + "'"
+    db.query(insertSQL, updateSQL, (error, results) => {
         if (error) {
             console.log(error)
         } else {
@@ -190,8 +207,5 @@ exports.createFolder = (req, res) => {
             response.status(true, res)
         }
     })
-
 }
-
-
 
