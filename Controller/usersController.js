@@ -9,6 +9,7 @@ exports.users = (req, res) => {
             if (error) {
                 console.log(error);
             } else {
+                rows[0].status = rows[0].status ? crypto.decrypt(rows[0].status) : null
                 response.status(rows[0], res)
             }
         })
@@ -37,6 +38,7 @@ exports.userContacts = (req, res) => {
                     if (contacts.length === reads.length) {
                         contacts[i].messages_count = reads[i].count
                         contacts[i].importance = reads[i].importance
+                        contacts[i].status = contacts[i].status ? crypto.decrypt(contacts[i].status) : null
                         contacts[i].contact_group = reads[i].contact_group ? crypto.decrypt(reads[i].contact_group) : null
                         contacts[i].labels = reads[i].labels
                         contacts[i].last_message = reads[i].last_message ? crypto.decrypt(reads[i].last_message) : null
@@ -198,6 +200,17 @@ exports.createFolder = (req, res) => {
 
 exports.setAvatar = (req, res) => {
     const sql = "Update `Users` set avatar='" + req.body.avatar + "' where login='" + req.body.login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
+
+exports.setStatus = (req, res) => {
+    const sql = "Update `Users` set status='" + crypto.encrypt(req.body.status) + "' where login='" + req.body.login + "'";
     db.query(sql, (error, results) => {
         if (error) {
             console.log(error)

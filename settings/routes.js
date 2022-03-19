@@ -18,6 +18,7 @@ module.exports = (app) => {
     app.route('/set-leaving-time').post(passport.authenticate('jwt', { session: false }), usersController.setLeavingTime);
     app.route('/set-private').post(passport.authenticate('jwt', { session: false }), usersController.setPrivate);
     app.route('/set-avatar').post(passport.authenticate('jwt', { session: false }), usersController.setAvatar);
+    app.route('/set-status').post(passport.authenticate('jwt', { session: false }), usersController.setStatus);
     app.route('/create-folder').post(passport.authenticate('jwt', { session: false }), usersController.createFolder);
 
     app.route('/login').post(authController.login);
