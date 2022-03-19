@@ -4,18 +4,19 @@ const bcrypt = require('bcrypt');
 const crypto = require('../crypto');
 
 exports.users = (req, res) => {
-    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private` from `Users` Where login=" + `'${req.params.login}'`, (error, rows) => {
-        if (error) {
-            console.log(error);
-        } else {
-            response.status(rows[0], res)
-        }
-    })
+    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `avatar`, `status` from `Users` Where login=" +
+        `'${req.params.login}'`, (error, rows) => {
+            if (error) {
+                console.log(error);
+            } else {
+                response.status(rows[0], res)
+            }
+        })
 }
 
 exports.userContacts = (req, res) => {
 
-    const constactsSQL = "select DISTINCT login, firstname, last_entrance, lastname, sequence, status, is_private from Users JOIN" +
+    const constactsSQL = "select DISTINCT login, firstname, avatar, last_entrance, lastname, sequence, status, is_private from Users JOIN" +
         " `contacts` where (login, sequence) in (SELECT owner_login, sequence FROM `Contacts` where contact_login='" +
         req.body.login + "'union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
     db.query(constactsSQL, (error, contacts) => {
@@ -181,20 +182,6 @@ exports.setPrivate = (req, res) => {
     })
 }
 
-exports.getPrivate = (req, res) => {
-    const sql = "select `is_private` from `Users` where login='" + req.body.login + "'";
-    db.query(sql, (error, results) => {
-        if (error) {
-            console.log(error)
-        } else {
-            if (results[0].is_private == 0) {
-                response.status(false, res)
-            } else {
-                response.status(true, res)
-            }
-        }
-    })
-}
 
 exports.createFolder = (req, res) => {
     const folderName = !req.body.folder[0].folderName ? null : `'${crypto.encrypt(req.body.folder[0].folderName)}'`
@@ -209,3 +196,13 @@ exports.createFolder = (req, res) => {
     })
 }
 
+exports.setAvatar = (req, res) => {
+    const sql = "Update `Users` set avatar='" + req.body.avatar + "' where login='" + req.body.login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
