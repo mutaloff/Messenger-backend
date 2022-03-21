@@ -10,12 +10,24 @@ exports.getMessages = (req, res) => {
         "WHERE (sender_login=" + `'${req.body.senderLogin}' AND receiver_login='${req.body.receiverLogin}') OR
         (sender_login='${req.body.receiverLogin}' AND receiver_login='${req.body.senderLogin}') 
         ORDER by id DESC LIMIT ${limit} OFFSET ${req.body.page * limit}`
+
+
     db.query(msgsSql, (error, rows) => {
         if (error) {
             console.log(error);
         } else {
+
             result.messages = rows
             result.messages.map(element => element.text = crypto.decrypt(element.text))
+
+            if (req.body.searchText) {
+                let regex = new RegExp(req.body.searchText.toLowerCase(), 'g');
+                result.messages = result.messages.filter(data => {
+                    if (data.text.toLowerCase().match(regex)) {
+                        return data
+                    }
+                })
+            }
 
             TCSql = "SELECT count(id) as count from `Messages` WHERE (sender_login='" + req.body.receiverLogin +
                 "' AND receiver_login='" + req.body.senderLogin + "') OR (sender_login='" + req.body.senderLogin +

@@ -69,11 +69,14 @@ exports.userContacts = (req, res) => {
 
 
 exports.search = (req, res) => {
-    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `status` from `Users` Where login LIKE" +
+    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `status`, `avatar` from `Users` Where login LIKE" +
         `'${req.params.login}%'`, (error, rows) => {
             if (error) {
                 console.log(error);
             } else {
+                rows.map(row => {
+                    row.status = row.status ? crypto.decrypt(row.status) : null
+                })
                 response.status(rows, res)
             }
         })
