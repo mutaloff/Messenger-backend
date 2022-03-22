@@ -9,7 +9,7 @@ exports.getMessages = (req, res) => {
         " `receiver_login`, `text`, `date` from `Users` AS U JOIN `Messages` AS M ON (login = sender_login)" +
         "WHERE (sender_login=" + `'${req.body.senderLogin}' AND receiver_login='${req.body.receiverLogin}') OR
         (sender_login='${req.body.receiverLogin}' AND receiver_login='${req.body.senderLogin}') 
-        ORDER by id DESC LIMIT ${limit} OFFSET ${req.body.page * limit}`
+        ORDER by id DESC` + req.body.searchText && `LIMIT ${limit} OFFSET ${req.body.page * limit}`
 
 
     db.query(msgsSql, (error, rows) => {
