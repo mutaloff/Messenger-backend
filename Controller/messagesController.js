@@ -16,7 +16,6 @@ exports.getMessages = (req, res) => {
         if (error) {
             console.log(error);
         } else {
-
             result.messages = rows
             result.messages.map(element => element.text = crypto.decrypt(element.text))
 
