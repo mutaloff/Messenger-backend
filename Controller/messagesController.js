@@ -11,7 +11,6 @@ exports.getMessages = (req, res) => {
         (sender_login='${req.body.receiverLogin}' AND receiver_login='${req.body.senderLogin}') 
         ORDER by id DESC ${req.body.searchText ? '' : `LIMIT ${limit} OFFSET ${req.body.page * limit}`}`
 
-    console.log(msgsSql)
     db.query(msgsSql, (error, rows) => {
         if (error) {
             console.log(error);
@@ -20,11 +19,13 @@ exports.getMessages = (req, res) => {
             result.messages.map(element => element.text = crypto.decrypt(element.text))
 
             if (req.body.searchText) {
+                req.body.searchText = req.body.searchText.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
                 let regex = new RegExp(req.body.searchText.toLowerCase(), 'g');
                 result.messages = result.messages.filter(data => {
                     if (data.text.toLowerCase().match(regex)) {
                         return data
                     }
+                    return
                 })
             }
 
@@ -98,6 +99,18 @@ exports.setImportance = (req, res) => {
             console.log(error);
         } else {
             response.status(rows, res)
+        }
+    })
+}
+
+
+exports.deleteMessages = (req, res) => {
+    const sql = "DELETE FROM `Messages` where id in (" + db.escape(req.body.messages) + ")"
+    db.query(sql, (error, rows) => {
+        if (error) {
+            console.log(error);
+        } else {
+            response.status(true, res)
         }
     })
 }
