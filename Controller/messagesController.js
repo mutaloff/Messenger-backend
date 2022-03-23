@@ -105,12 +105,30 @@ exports.setImportance = (req, res) => {
 
 
 exports.deleteMessages = (req, res) => {
-    const sql = "DELETE FROM `Messages` where id in (" + db.escape(req.body.messages) + ")"
-    db.query(sql, (error, rows) => {
+    const sql = "DELETE FROM `Messages` where id in (" + db.escape(req.body.id) + ")"
+    const messages = req.body.messages.filter(message => {
+        if (!req.body.id.some(id => id == message.id)) {
+            return message
+        }
+    })
+    const text = messages.length ? `'${crypto.encrypt(messages[0].text)}'` : null
+
+    const sqlLM = "Update `Contacts` set last_message=" + text +
+        " where (owner_login = '" + req.body.receiverLogin +
+        "' and contact_login='" + req.body.senderLogin + "') or (owner_login ='" + req.body.senderLogin +
+        "' and contact_login = '" + req.body.receiverLogin + "')"
+
+    db.query(sqlLM, (error, rows1) => {
         if (error) {
             console.log(error);
         } else {
-            response.status(true, res)
+            db.query(sql, (error, rows2) => {
+                if (error) {
+                    console.log(error);
+                } else {
+                    response.status(true, res)
+                }
+            })
         }
     })
 }
