@@ -4,13 +4,17 @@ const bcrypt = require('bcrypt');
 const crypto = require('../crypto');
 
 exports.users = (req, res) => {
-    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `avatar`, `status` from `Users` Where login=" +
+    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `avatar`, `status`, `email`," +
+        "`email_password`, `receive_email` from `Users` Where login=" +
         `'${req.params.login}'`, (error, rows) => {
             if (error) {
                 console.log(error);
             } else {
-                rows[0].status = rows[0].status ? crypto.decrypt(rows[0].status) : null
-                response.status(rows[0], res)
+                if (rows.length) {
+                    rows[0].status = rows[0].status ? crypto.decrypt(rows[0].status) : null
+                    rows[0].email = rows[0].email ? crypto.decrypt(rows[0].email) : null
+                    response.status(rows[0], res)
+                }
             }
         })
 }
@@ -214,6 +218,40 @@ exports.setAvatar = (req, res) => {
 
 exports.setStatus = (req, res) => {
     const sql = "Update `Users` set status='" + crypto.encrypt(req.body.status) + "' where login='" + req.body.login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
+
+exports.setEmail = (req, res) => {
+    const sql = "Update `Users` set email='" + crypto.encrypt(req.body.email) + "' where login='" + req.body.login + "'";
+
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
+
+exports.setEmailPassword = (req, res) => {
+    const sql = "Update `Users` set email_password='" + crypto.encrypt(req.body.emailPassword) + "' where login='" + req.body.login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
+
+exports.setEmailReceive = (req, res) => {
+    const sql = "Update `Users` set receive_email='" + req.body.emailReceive + "' where login='" + req.body.login + "'";
     db.query(sql, (error, results) => {
         if (error) {
             console.log(error)

@@ -1,6 +1,8 @@
 const response = require('../response');
 const db = require('../settings/db');
 const crypto = require('../crypto')
+const email = require('../email');
+
 
 exports.getMessages = (req, res) => {
     const limit = req.body.limit
@@ -11,13 +13,13 @@ exports.getMessages = (req, res) => {
         (sender_login='${req.body.receiverLogin}' AND receiver_login='${req.body.senderLogin}') 
         ORDER by id DESC ${req.body.searchText ? '' : `LIMIT ${limit} OFFSET ${req.body.page * limit}`}`
 
+
     db.query(msgsSql, (error, rows) => {
         if (error) {
             console.log(error);
         } else {
             result.messages = rows
             result.messages.map(element => element.text = crypto.decrypt(element.text))
-
             if (req.body.searchText) {
                 req.body.searchText = req.body.searchText.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
                 let regex = new RegExp(req.body.searchText.toLowerCase(), 'g');
@@ -28,18 +30,46 @@ exports.getMessages = (req, res) => {
                     return
                 })
             }
+            const getMessageCount = () => {
+                const TCSql = "SELECT count(id) as count from `Messages` WHERE (sender_login='" + req.body.receiverLogin +
+                    "' AND receiver_login='" + req.body.senderLogin + "') OR (sender_login='" + req.body.senderLogin +
+                    "' AND receiver_login='" + req.body.receiverLogin + "')"
+                db.query(TCSql, (error, totalCount) => {
+                    if (error) {
+                        console.log(error);
+                    } else {
+                        result.totalCount = totalCount[0].count
+                        response.status(result, res)
+                    }
+                })
+            }
 
-            TCSql = "SELECT count(id) as count from `Messages` WHERE (sender_login='" + req.body.receiverLogin +
-                "' AND receiver_login='" + req.body.senderLogin + "') OR (sender_login='" + req.body.senderLogin +
-                "' AND receiver_login='" + req.body.receiverLogin + "')"
-            db.query(TCSql, (error, totalCount) => {
-                if (error) {
-                    console.log(error);
-                } else {
-                    result.totalCount = totalCount[0].count
-                    response.status(result, res)
-                }
-            })
+            if (!req.body.searchText) {
+                const sqlReceiver = "SELECT `login`, `email`,`email_password`, `receive_email` from `Users` Where login=" + `'${req.body.receiverLogin}';`
+                const sqlSender = "SELECT `id`, `login`, `firstname`, `lastname`, `email` from `Users` Where login=" + `'${req.body.senderLogin}'`
+                db.query(sqlSender, (error, senderData) => {
+                    if (error) {
+                        console.log(error);
+                    } else {
+                        db.query(sqlReceiver, (error, receiverData) => {
+                            if (error) {
+                                console.log(error);
+                            } else {
+                                if (receiverData.length && receiverData[0].receive_email) {
+                                    email.addEmails(result.messages, senderData[0], receiverData[0], req.body.page)
+                                        .finally((messages) => {
+                                            getMessageCount()
+                                        })
+                                } else {
+                                    getMessageCount()
+                                }
+                            }
+                        })
+                    }
+                })
+            } else {
+                getMessageCount()
+            }
         }
     })
 }
