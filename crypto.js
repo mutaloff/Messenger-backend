@@ -6,7 +6,6 @@ const algorithm = config.algorithm;
 const iv = crypto.randomBytes(16);
 
 exports.encrypt = (text) => {
-    console.log(text)
     let cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv);
     let encrypted = cipher.update(text);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
@@ -14,11 +13,13 @@ exports.encrypt = (text) => {
 }
 
 exports.decrypt = (text) => {
-    console.log(text)
-    let iv = Buffer.from(text.split(':')[1], 'hex');
-    let encryptedText = Buffer.from(text.split(':')[0], 'hex');
-    let decipher = crypto.createDecipheriv(algorithm, Buffer.from(key), iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
+    if (text) {
+        let iv = Buffer.from(text.split(':')[1], 'hex');
+        let encryptedText = Buffer.from(text.split(':')[0], 'hex');
+        let decipher = crypto.createDecipheriv(algorithm, Buffer.from(key), iv);
+        let decrypted = decipher.update(encryptedText);
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        return decrypted.toString();
+    }
+    return text
 }
