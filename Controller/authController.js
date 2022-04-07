@@ -105,7 +105,7 @@ exports.refresh = (req, res) => {
 
             db.query(sql, (err, result) => {
                 if (err) {
-                    throw new Error('Токен не найден')
+                    console.log('Токен не найден')
                 } else {
                     if (result[0]?.refresh_token === refreshToken && isRefreshTokenValid) {
                         db.query("SELECT `id`, `login` from `Users` Where login=" + `'${login}'`, (error, rows, fields) => {

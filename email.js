@@ -86,7 +86,7 @@ exports.addEmails = async function addEmails(messages, senderData, receiverData,
             beforeDate = formatDate(new Date(messages[0].date), 1)
         }
     }
-    if (senderEmail && receiverData) {
+    if (crypto.decrypt(senderEmail) && receiverData) {
         return getEmails(crypto.decrypt(senderEmail), crypto.decrypt(receiverData.email), crypto.decrypt(receiverData.email_password), sinceDate, beforeDate)
             .then(data => {
                 if (data) {
