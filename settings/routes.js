@@ -30,7 +30,10 @@ module.exports = (app) => {
     app.route('/refresh').post(authController.refresh);
 
     app.route('/set-message').post(passport.authenticate('jwt', { session: false }), messagesController.setMessage);
+    app.route('/set-assignment').post(passport.authenticate('jwt', { session: false }), messagesController.setAssignment);
+    app.route('/set-done').post(passport.authenticate('jwt', { session: false }), messagesController.setDone);
     app.route('/get-messages').post(passport.authenticate('jwt', { session: false }), messagesController.getMessages);
+    app.route('/get-assignment').post(passport.authenticate('jwt', { session: false }), messagesController.getAssignment);
     app.route('/get-unread').post(passport.authenticate('jwt', { session: false }), messagesController.getUnread);
     app.route('/set-read').post(passport.authenticate('jwt', { session: false }), messagesController.setRead);
     app.route('/set-importance').post(passport.authenticate('jwt', { session: false }), messagesController.setImportance);

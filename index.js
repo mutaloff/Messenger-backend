@@ -35,11 +35,11 @@ const start = async () => {
                 io.emit('enter', addUser(login, socket.id));
             });
 
-            socket.on('sendMessage', ({ sender_login, receiver_login, text, firstname }) => {
+            socket.on('sendMessage', ({ sender_login, receiver_login, text, firstname, assignment, assignment_term }) => {
                 const userAccs = findUser(sender_login, receiver_login, socket.id);
                 if (users.some(user => user.login === receiver_login)) {
                     userAccs.forEach(user => {
-                        io.to(user.socketId).emit('getMessage', { sender_login, text, firstname, is_read })
+                        io.to(user.socketId).emit('getMessage', { sender_login, text, firstname, is_read, assignment, assignment_term })
                     })
                 }
             })

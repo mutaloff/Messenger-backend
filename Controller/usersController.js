@@ -21,7 +21,7 @@ exports.users = (req, res) => {
 
 exports.userContacts = (req, res) => {
 
-    const constactsSQL = "select DISTINCT login, firstname, avatar, last_entrance, lastname, sequence, status, is_private from Users JOIN" +
+    const constactsSQL = "select DISTINCT login, firstname, avatar, last_entrance, lastname, sequence, status, email, is_private from Users JOIN" +
         " `contacts` where (login, sequence) in (SELECT owner_login, sequence FROM `Contacts` where contact_login='" +
         req.body.login + "'union (SELECT contact_login,  sequence FROM `Contacts` where owner_login='" + req.body.login + "')) order by sequence DESC"
     db.query(constactsSQL, (error, contacts) => {
@@ -45,6 +45,7 @@ exports.userContacts = (req, res) => {
                         contacts[i].status = contacts[i].status ? crypto.decrypt(contacts[i].status) : null
                         contacts[i].contact_group = reads[i].contact_group ? crypto.decrypt(reads[i].contact_group) : null
                         contacts[i].labels = reads[i].labels
+                        contacts[i].email = contacts[i].email ? crypto.decrypt(contacts[i].email) : null
                         contacts[i].last_message = reads[i].last_message ? crypto.decrypt(reads[i].last_message) : null
                     }
                 }

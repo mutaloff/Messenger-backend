@@ -101,6 +101,7 @@ exports.refresh = (req, res) => {
 
         try {
             res.clearCookie('refreshToken');
+
             const sql = "SELECT `refresh_token` from `Auth` Where refresh_token=" + `'${refreshToken}'`;
 
             db.query(sql, (err, result) => {
