@@ -74,18 +74,38 @@ exports.userContacts = (req, res) => {
 
 
 exports.search = (req, res) => {
-    db.query("SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `status`, `avatar` from `Users` Where login LIKE" +
-        `'${req.params.login}%'`, (error, rows) => {
-            if (error) {
-                console.log(error);
-            } else {
-                rows.map(row => {
-                    row.status = row.status ? crypto.decrypt(row.status) : null
-                })
-                response.status(rows, res)
-            }
-        })
+    let sql = "SELECT `id`, `login`, `firstname`, `lastname`, `is_private`, `status`, `avatar` from `Users` Where login LIKE" + `'${req.params.login}%'`
+    db.query(sql, (error, rows) => {
+        if (error) {
+            console.log(error);
+        } else {
+            rows.map(row => {
+                row.status = row.status ? crypto.decrypt(row.status) : null
+            })
+            response.status(rows, res)
+        }
+    })
 }
+
+exports.searchByLabels = (req, res) => {
+    let sql = "SELECT DISTINCT `login`, `firstname`, `lastname`, `is_private`, `status`, `avatar`, `labels` from `Users`" +
+        "left join Contacts on login in (SELECT contact_login FROM `Contacts` WHERE (owner_login='" +
+        req.body.login + "'and labels LIKE '%" + req.body.label + "%'))" +
+        "Where (login, labels) in (SELECT contact_login, labels FROM `Contacts` WHERE (owner_login='" + req.body.login +
+        "'and labels LIKE '%" + req.body.label + "%'))"
+
+    db.query(sql, (error, rows) => {
+        if (error) {
+            console.log(error);
+        } else {
+            rows.map(row => {
+                row.status = row.status ? crypto.decrypt(row.status) : null
+            })
+            response.status(rows, res)
+        }
+    })
+}
+
 
 exports.add = (req, res) => {
     if (req.body.login && req.body.password && req.body.firstname && req.body.lastname) {
@@ -253,6 +273,19 @@ exports.setEmailPassword = (req, res) => {
 
 exports.setEmailReceive = (req, res) => {
     const sql = "Update `Users` set receive_email='" + req.body.emailReceive + "' where login='" + req.body.login + "'";
+    db.query(sql, (error, results) => {
+        if (error) {
+            console.log(error)
+        } else {
+            response.status(true, res)
+        }
+    })
+}
+
+
+exports.updateLabels = (req, res) => {
+    const sql = "Update `Contacts` set labels=" + `${req.body.labels.length ? "'#" + req.body.labels + "'" : null}` + " where (owner_login='" +
+        req.body.ownerLogin + "' and contact_login='" + req.body.contactLogin + "')";
     db.query(sql, (error, results) => {
         if (error) {
             console.log(error)

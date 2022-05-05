@@ -10,6 +10,7 @@ module.exports = (app) => {
 
     app.route('/users/@:login').get(passport.authenticate('jwt', { session: false }), usersController.users);
     app.route('/search/@:login').get(passport.authenticate('jwt', { session: false }), usersController.search);
+    app.route('/search-by-labels').post(passport.authenticate('jwt', { session: false }), usersController.searchByLabels);
     app.route('/users/add').post(usersController.add);
     app.route('/users/get-contacts').post(passport.authenticate('jwt', { session: false }), usersController.userContacts);
     app.route('/check-subscription').post(passport.authenticate('jwt', { session: false }), usersController.checkSubscription);
@@ -23,6 +24,7 @@ module.exports = (app) => {
     app.route('/set-email-password').post(passport.authenticate('jwt', { session: false }), usersController.setEmailPassword);
     app.route('/set-email-receive').post(passport.authenticate('jwt', { session: false }), usersController.setEmailReceive);
     app.route('/create-folder').post(passport.authenticate('jwt', { session: false }), usersController.createFolder);
+    app.route('/update-labels').post(passport.authenticate('jwt', { session: false }), usersController.updateLabels);
 
     app.route('/login').post(authController.login);
     app.route('/users/check/@:login').get(authController.checkLogin);
@@ -38,4 +40,5 @@ module.exports = (app) => {
     app.route('/set-read').post(passport.authenticate('jwt', { session: false }), messagesController.setRead);
     app.route('/set-importance').post(passport.authenticate('jwt', { session: false }), messagesController.setImportance);
     app.route('/delete-messages').post(passport.authenticate('jwt', { session: false }), messagesController.deleteMessages);
+    app.route('/update-spam').post(passport.authenticate('jwt', { session: false }), messagesController.updateSpam);
 }

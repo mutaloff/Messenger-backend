@@ -2,18 +2,19 @@ const response = require('../response');
 const db = require('../settings/db');
 const crypto = require('../crypto')
 const email = require('../email');
+const { spam } = require('../spam');
 
 
 exports.getMessages = (req, res) => {
     const limit = req.body.limit
+    const isSpam = req.body.isSpam ? 1 : 0
     const result = {}
     const msgsSql = "SELECT DISTINCT M.id, `login`,`is_read`, `firstname`, `lastname`, `sender_login`," +
         " `receiver_login`, `text`, `date`, assignment, assignment_term," +
-        "is_done from `Users` AS U JOIN `Messages` AS M ON (login = sender_login)" +
-        "WHERE (sender_login=" + `'${req.body.senderLogin}' AND receiver_login='${req.body.receiverLogin}') OR
-        (sender_login='${req.body.receiverLogin}' AND receiver_login='${req.body.senderLogin}') 
-        ORDER by id DESC ${req.body.searchText ? '' : `LIMIT ${limit} OFFSET ${req.body.page * limit}`}`
-
+        "is_done, is_spam from `Users` AS U JOIN `Messages` AS M ON (login = sender_login)" +
+        "WHERE ((sender_login=" + `'${req.body.senderLogin}' AND receiver_login='${req.body.receiverLogin}' AND is_spam=${isSpam}) OR
+        (sender_login='${req.body.receiverLogin}' AND receiver_login='${req.body.senderLogin}')) 
+        ORDER by id DESC ${req.body.searchText || limit == 0 ? '' : `LIMIT ${limit} OFFSET ${req.body.page * limit}`}`
 
     db.query(msgsSql, (error, rows) => {
         if (error) {
@@ -100,7 +101,16 @@ exports.getAssignment = (req, res) => {
     })
 }
 
-
+exports.updateSpam = (req, res) => {
+    const sql = "Update `Messages` set is_spam='" + 0 + "' where id='" + req.body.id + "'"
+    db.query(sql, (error, rows) => {
+        if (error) {
+            console.log(error);
+        } else {
+            response.status(true, res)
+        }
+    })
+}
 
 exports.setMessage = (req, res) => {
     const contact_sql = "Update `Contacts` set sequence=" + Date.now() + ", last_message='" + crypto.encrypt(req.body.text) +
@@ -111,9 +121,10 @@ exports.setMessage = (req, res) => {
         if (error) {
             console.log(error);
         } else {
-            let sql = "INSERT INTO  `Messages` (`sender_login`, `receiver_login`, `text`, `is_read`, `date`) VALUES "
+            let isSpam = spam(req.body.text) ? 1 : 0
+            let sql = "INSERT INTO  `Messages` (`sender_login`, `receiver_login`, `text`, `is_read`, `date`, `is_spam`) VALUES "
             req.body.receiverLogin.map(receiverLogin =>
-                sql = `${sql}('${req.body.senderLogin}', '${receiverLogin}','${crypto.encrypt(req.body.text)}', '0', NOW()),`)
+                sql = `${sql}('${req.body.senderLogin}', '${receiverLogin}','${crypto.encrypt(req.body.text)}', '0', NOW(), ${isSpam}),`)
             db.query(sql.slice(0, -1), (error, results) => {
                 if (error) {
                     console.log(error);
